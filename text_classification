@@ -1,0 +1,100 @@
+# Importing Libraries
+
+import numpy as np
+import nltk
+from nltk.corpus import stopwords
+import re
+import pickle
+from sklearn.datasets import load_files   # to import dataset (if we are having different category datasets in different folders)
+#nltk.download('stopwords')
+
+#importing dataset
+
+reviews = load_files('review_polarity/txt_sentoken/')
+
+# to separate the documents and class
+X,y = reviews.data,reviews.target
+
+# Storing as Pickle file
+with open('X.pickle', 'wb') as f:
+    pickle.dump(X, f)
+
+with open('y.pickle', 'wb') as f:
+    pickle.dump(y, f)
+
+
+# unpickling the dataset
+with open('X.pickle', 'rb') as f:
+    X = pickle.load(f)
+
+with open('y.pickle', 'rb') as f:
+    y = pickle.load(f)
+
+
+# Creating the corpus
+corpus = []   # list of docs
+
+for i in range(len(X)):
+    review = re.sub(r"\W"," ",str(X[i]))
+    review = review.lower()
+    review = re.sub(r"\s+[a-z]\s+"," ",review)
+    review = re.sub(r"^[a-z]\s+"," ",review)
+    review = re.sub(r"\s+"," ",review)
+    corpus.append(review)
+
+# Bag of words
+
+#from sklearn.feature_extraction.text import CountVectorizer
+#vectorizer = CountVectorizer(max_features=2000, min_df = 3, max_df = 0.6, stop_words=stopwords.words('english'))
+
+# max_feature --> n frequent words from the dictionary/Histogram of frequent words
+# min_df --> taking words which having minimum document freq. = 3
+# max_df --> excluding x percentage of words (less important) like, the, a, ect
+
+#X = vectorizer.fit_transform(corpus).toarray()
+
+# tf-idf conversion
+#from sklearn.feature_extraction.text import TfidfTransformer
+
+#transformer = TfidfTransformer()
+#X = transformer.fit_transform(X).toarray()
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+vectorizer = TfidfVectorizer(max_features=2000, min_df = 3, max_df = 0.6, stop_words=stopwords.words('english'))
+
+X = vectorizer.fit_transform(corpus).toarray()
+
+# training testing datasets
+
+from sklearn.model_selection import train_test_split
+
+text_train, text_test, sent_train, sent_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+
+# Logistic Regression   --> for binary classification
+
+#  -- Each sentence is mapped to a point.
+#  -- If the point is greater than 0.5 then positive else negative
+
+from sklearn.linear_model import LogisticRegression
+
+classifier = LogisticRegression()
+classifier.fit(text_train, sent_train)
+
+sent_prediction = classifier.predict(text_test)
+
+from sklearn.metrics import confusion_matrix
+
+cn = confusion_matrix(sent_test,sent_prediction)
+print(cn)
+
+
+# Pickling the classifier
+
+with open('classifier.pickle','wb') as f:
+    pickle.dump(classifier,f)
+
+# Pickling the vectorizer
+
+with open('tfidfmodel.pickle','wb') as f:
+    pickle.dump(vectorizer,f)

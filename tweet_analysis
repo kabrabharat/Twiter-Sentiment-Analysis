@@ -1,0 +1,94 @@
+import numpy as np
+
+import tweepy
+import re
+import pickle
+
+from tweepy import OAuthHandler    # for authentication of m/c with server
+
+# Initialization of keys
+
+consumer_key = "nYhlWsuRABxjVe1EptSkOM8xM"
+consumer_secret = "Rwl9lacHL7UGAMqUm5Gv7Zvy6YQCMObaJGm2ClW17oAiJGlumW"
+access_token = "621706271-rzDckW3fqSx9ojTGLShrctR0afxPaqRF42fVBJ8J"
+access_secret = "tWSYI5ODwZYUOqKvScZZuzEmcWHQWtgYwMxfMj2CbhmbV"
+
+auth = OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_secret)
+
+args = ['India']
+
+api = tweepy.API(auth, timeout=10)  # if we dont find any tweet on twitter then after 10 second it'll stop looking for it.
+
+
+list_tweets = []
+
+query = args[0]
+
+for status in tweepy.Cursor(api.search, q=query+" -filter:retweets", lang='en', result_type='recent').items(100):
+    list_tweets.append(status.text)
+
+# import vectorizer and classifier
+
+with open('tfidfmodel.pickle','rb') as f:
+    vectorizer = pickle.load(f)
+
+with open('classifier.pickle','rb') as f:
+    clf = pickle.load(f)
+
+total_pos = 0
+total_neg = 0
+
+# pre-processing of tweet
+for tweet in list_tweets:
+    # print(tweet)
+    tweet = re.sub(r"^http://t.co/[a-zA-Z0-9]*\s"," ",tweet)
+    tweet = re.sub(r"\s+https://t.co/[a-zA-Z0-9]*\s", " ", tweet)
+    tweet = re.sub(r"\s+https://t.co/[a-zA-Z0-9]*$"," ",tweet)
+
+    tweet = tweet.lower()
+    tweet = re.sub(r"that's","that is",tweet)
+    tweet = re.sub(r"there's", "there is", tweet)
+    tweet = re.sub(r"what's", "what is", tweet)
+    tweet = re.sub(r"where's", "where is", tweet)
+    tweet = re.sub(r"it's", "it is", tweet)
+    tweet = re.sub(r"who's", "who is", tweet)
+    tweet = re.sub(r"i'm", "i am", tweet)
+    tweet = re.sub(r"she's", "she is", tweet)
+    tweet = re.sub(r"he's", "he is", tweet)
+    tweet = re.sub(r"they're", "the are", tweet)
+    tweet = re.sub(r"who're", "who are", tweet)
+    tweet = re.sub(r"ain't", "am not", tweet)
+    tweet = re.sub(r"wouldn't", "would not", tweet)
+    tweet = re.sub(r"shouldn't", "should not", tweet)
+    tweet = re.sub(r"can't", "can not", tweet)
+    tweet = re.sub(r"couldn't", "could not", tweet)
+    tweet = re.sub(r"won't", "will not", tweet)
+    tweet = re.sub(r"\W", " ", tweet)
+    tweet = re.sub(r"\d", " ", tweet)
+    tweet = re.sub(r"\s+[a-z]\s+]", " ", tweet)
+    tweet = re.sub(r"\s+[a-z]$", " ", tweet)
+    tweet = re.sub(r"[a-z]\s+]", " ", tweet)
+    tweet = re.sub(r"\s+", " ", tweet)
+    #print(tweet)
+
+    sent = clf.predict(vectorizer.transform([tweet]).toarray())
+    print(tweet," : ",sent)
+    if sent[0] == 1:
+        total_pos += 1
+    else:
+        total_neg +=1
+
+# plotting the result
+
+import matplotlib.pyplot as plt
+
+pos_neg = ['Positive', 'Negative']   # for number of bars in the graph
+
+y_pos = np.arange(len(pos_neg))
+
+plt.bar(y_pos,[total_pos, total_neg], alpha = 0.7)
+plt.xticks(y_pos, pos_neg)
+plt.ylabel("Number")
+plt.title("Number of positive and negative tweets")
+plt.show()
