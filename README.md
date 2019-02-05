@@ -8,4 +8,4 @@ Then made a classifier by applying Logistic regression (Machine Learning approca
 Then used twitter API (tweepy) to fetch the recent 100 english tweet on particular topic (India), preprocessed those tweets.And using the classifier predict
 the Sentiment and plot the bars using matplotlib.pyplot .
 
-![](tweet_analysis.png)
+![](tweet_analysis.PNG)
